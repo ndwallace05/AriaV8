@@ -1,0 +1,7 @@
+{
+  "name": "Aria - AI Personal Assistant",
+  "description": "A real-time voice and chat personal assistant for managing your calendar, emails, and tasks with a clean, modern interface.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

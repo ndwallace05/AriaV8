@@ -1,0 +1,9 @@
+livekit
+livekit-agents
+Flask
+Flask-Cors
+python-dotenv
+google-api-python-client
+google-auth-oauthlib
+memori-sdk
+litellm

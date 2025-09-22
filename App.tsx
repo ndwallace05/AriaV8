@@ -10,11 +10,11 @@ import SettingsView from './components/SettingsView';
 import ChatWindow from './components/ChatWindow';
 import { ICONS } from './constants';
 import { useGoogleAuth } from './hooks/useGoogleAuth';
+import { useLiveKitAgent } from './hooks/useLiveKitAgent';
 import { listCalendarEvents } from './services/googleCalendarService';
 import { listEmails } from './services/gmailService';
 import { listTasks } from './services/googleTasksService';
 import { getMemories, saveMemory } from './services/memoryService';
-import { getAriaResponse } from './services/geminiService';
 
 /**
  * The main application component for Aria.
@@ -25,10 +25,9 @@ const App: React.FC = () => {
     const [view, setView] = useState<View>(View.DASHBOARD);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isChatOpen, setIsChatOpen] = useState(false);
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-        { role: 'model', content: "Hi! I'm Aria, your personal AI assistant. How can I help you today?" }
-    ]);
-    const [isAriaLoading, setIsAriaLoading] = useState(false);
+
+    const { isLoggedIn, accessToken, userProfile, login, logout, isApiReady } = useGoogleAuth();
+    const { messages: chatMessages, isConnected: isAgentConnected, isAgentReplying, sendChatMessage } = useLiveKitAgent(userProfile, accessToken);
 
     // Data states
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,7 +35,6 @@ const App: React.FC = () => {
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [memories, setMemories] = useState<Memory[]>(getMemories());
 
-    const { isLoggedIn, accessToken, userProfile, login, logout, isApiReady } = useGoogleAuth();
 
     /**
      * Fetches data from Google services (Calendar, Gmail, Tasks)
@@ -72,34 +70,11 @@ const App: React.FC = () => {
      * @param {string} message The message from the user.
      */
     const handleSendMessage = async (message: string) => {
-        const newUserMessage: ChatMessage = { role: 'user', content: message };
-        const newHistory = [...chatMessages, newUserMessage];
-        setChatMessages(newHistory);
-        setIsAriaLoading(true);
-
-        try {
-            const responseText = await getAriaResponse(newHistory, memories);
-            
-            // Check if response is a memory command
-            try {
-                const jsonResponse = JSON.parse(responseText);
-                if (jsonResponse.memory) {
-                    const newMemory = saveMemory({ content: jsonResponse.memory });
-                    setMemories(prev => [...prev, newMemory]);
-                    setChatMessages(prev => [...prev, { role: 'model', content: `Okay, I'll remember that: "${jsonResponse.memory}"` }]);
-                } else {
-                    throw new Error("Not a memory object");
-                }
-            } catch (e) {
-                // Not a JSON memory object, treat as regular text
-                setChatMessages(prev => [...prev, { role: 'model', content: responseText }]);
-            }
-
-        } catch (error) {
-            console.error("Error getting Aria's response:", error);
-            setChatMessages(prev => [...prev, { role: 'model', content: "Sorry, I'm having trouble connecting right now." }]);
-        } finally {
-            setIsAriaLoading(false);
+        if (isAgentConnected) {
+            sendChatMessage(message);
+        } else {
+            // Handle case where agent is not connected
+            console.error("Cannot send message, agent not connected.");
         }
     };
     
@@ -149,7 +124,7 @@ const App: React.FC = () => {
                 onClose={() => setIsChatOpen(false)} 
                 messages={chatMessages} 
                 onSendMessage={handleSendMessage} 
-                isLoading={isAriaLoading} 
+                isLoading={isAgentReplying || !isAgentConnected}
             />
 
             {!isChatOpen && (

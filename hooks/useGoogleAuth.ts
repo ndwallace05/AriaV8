@@ -11,6 +11,19 @@ const SCOPES = [
     'https://www.googleapis.com/auth/tasks',
 ].join(' ');
 
+/**
+ * A custom hook to manage Google OAuth2 authentication.
+ * It handles loading the Google API scripts, user login/logout,
+ * and storing the access token and user profile.
+ * @returns {{
+ *  isApiReady: boolean,
+ *  isLoggedIn: boolean,
+ *  accessToken: string | null,
+ *  userProfile: UserProfile | null,
+ *  login: () => void,
+ *  logout: () => void
+ * }} An object containing authentication state and functions.
+ */
 export const useGoogleAuth = () => {
     const [isApiReady, setIsApiReady] = useState(false);
     const [accessToken, setAccessToken] = useState<string | null>(null);

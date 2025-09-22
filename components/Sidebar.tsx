@@ -10,6 +10,17 @@ interface SidebarProps {
   userProfile: UserProfile | null;
 }
 
+/**
+ * Renders the sidebar navigation for the application.
+ * It includes links to different views and displays user information.
+ * @param {SidebarProps} props The component props.
+ * @param {View} props.currentView The currently active view.
+ * @param {(view: View) => void} props.setView The function to change the current view.
+ * @param {boolean} props.isOpen Whether the sidebar is open (on mobile).
+ * @param {(isOpen: boolean) => void} props.setIsOpen The function to set the sidebar's open state.
+ * @param {UserProfile | null} props.userProfile The user's Google profile information.
+ * @returns {React.ReactElement} The rendered sidebar component.
+ */
 const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOpen, userProfile }) => {
   const navItems = [
     { view: View.DASHBOARD, icon: ICONS.dashboard, label: 'Dashboard' },
@@ -20,6 +31,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
     { view: View.SETTINGS, icon: ICONS.settings, label: 'Settings' },
   ];
 
+  /**
+   * Handles clicking a navigation item in the sidebar.
+   * @param {View} view The view to switch to.
+   */
   const handleItemClick = (view: View) => {
     setView(view);
     setIsOpen(false); // Close sidebar on item click for mobile

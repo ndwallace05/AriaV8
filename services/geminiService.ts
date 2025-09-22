@@ -4,6 +4,11 @@ import { searchMemories } from "./memoryService";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+/**
+ * Generates the system instruction for the Gemini model, including relevant memories.
+ * @param {Memory[]} relevantMemories A list of memories relevant to the current conversation.
+ * @returns {string} The system instruction string.
+ */
 const getSystemInstruction = (relevantMemories: Memory[]): string => {
     let memoryContext = "No relevant memories found.";
     if (relevantMemories.length > 0) {
@@ -21,6 +26,13 @@ ${memoryContext}
 Current Date: ${new Date().toLocaleDateString()}`;
 };
 
+/**
+ * Gets a response from the Gemini model for a given chat history.
+ * It also handles memory recall and storage intents.
+ * @param {ChatMessage[]} chatHistory The history of the conversation.
+ * @param {Memory[]} allMemories All stored memories to search through.
+ * @returns {Promise<string>} The text response from the AI.
+ */
 export const getAriaResponse = async (
     chatHistory: ChatMessage[],
     allMemories: Memory[]
@@ -49,6 +61,14 @@ export const getAriaResponse = async (
     }
 };
 
+/**
+ * Uses the Gemini model with a specific schema to extract structured data from a user's voice command.
+ * The schema and context change based on the current view of the application.
+ * @param {string} command The user's voice command.
+ * @param {View} view The current application view, which determines the action schema.
+ * @param {any} contextData Additional data to provide context to the model (e.g., list of tasks or emails).
+ * @returns {Promise<any>} A promise that resolves to a structured JSON object representing the action, or null on error.
+ */
 export const getAriaAction = async (command: string, view: View, contextData: any): Promise<any> => {
     let schema;
     let instructionContext = '';

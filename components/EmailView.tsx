@@ -12,6 +12,16 @@ interface EmailViewProps {
   requestApiAccess: () => void;
 }
 
+/**
+ * Renders the email view, displaying a list of emails and the content of the selected email.
+ * It allows marking emails as read and performing actions via voice command.
+ * @param {EmailViewProps} props The component props.
+ * @param {Email[]} props.emails The list of emails to display.
+ * @param {React.Dispatch<React.SetStateAction<Email[]>>} props.setEmails The function to update the emails state.
+ * @param {string | null} props.accessToken The Google API access token.
+ * @param {() => void} props.requestApiAccess The function to call when API access is requested.
+ * @returns {React.ReactElement} The rendered email view.
+ */
 const EmailView: React.FC<EmailViewProps> = ({ emails, setEmails, accessToken, requestApiAccess }) => {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
@@ -27,6 +37,11 @@ const EmailView: React.FC<EmailViewProps> = ({ emails, setEmails, accessToken, r
     }
   }, [emails]);
 
+  /**
+   * Handles selecting an email from the list.
+   * Marks the email as read if it's unread.
+   * @param {Email} email The email object that was selected.
+   */
   const handleSelectEmail = (email: Email) => {
       setSelectedEmail(email);
       if (!email.read && accessToken) {
@@ -38,6 +53,12 @@ const EmailView: React.FC<EmailViewProps> = ({ emails, setEmails, accessToken, r
       }
   };
 
+  /**
+   * Finds an email in the list by sender and subject keywords.
+   * @param {string} sender The sender to search for.
+   * @param {string} subject The subject keywords to search for.
+   * @returns {Email | null} The found email or null.
+   */
   const findEmail = (sender: string, subject: string): Email | null => {
       const senderLower = sender.toLowerCase();
       const subjectLower = subject.toLowerCase();
@@ -47,6 +68,10 @@ const EmailView: React.FC<EmailViewProps> = ({ emails, setEmails, accessToken, r
       ) || null;
   };
 
+  /**
+   * Handles voice commands for the email view.
+   * @param {string} command The transcribed voice command.
+   */
   const handleVoiceCommand = async (command: string) => {
       if (!command || !accessToken) return;
       setIsProcessingVoice(true);

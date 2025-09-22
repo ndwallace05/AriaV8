@@ -6,6 +6,12 @@ interface MemoryViewProps {
     memories: Memory[];
 }
 
+/**
+ * Renders the memory view, which displays a list of memories that Aria has stored.
+ * @param {MemoryViewProps} props The component props.
+ * @param {Memory[]} props.memories The list of memories to display.
+ * @returns {React.ReactElement} The rendered memory view.
+ */
 const MemoryView: React.FC<MemoryViewProps> = ({ memories }) => {
   const sortedMemories = [...memories].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 

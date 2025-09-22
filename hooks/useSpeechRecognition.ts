@@ -4,6 +4,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 const SpeechRecognition =
   (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
+/**
+ * A custom hook to handle speech recognition using the Web Speech API.
+ * It provides controls for starting and stopping listening, and reports the transcribed text.
+ * @param {{ onTranscriptChanged: (transcript: string) => void }} props The hook's props.
+ * @param {(transcript: string) => void} props.onTranscriptChanged Callback function when a transcript is finalized.
+ * @returns {{
+ *  isListening: boolean,
+ *  startListening: () => void,
+ *  stopListening: () => void,
+ *  hasRecognitionSupport: boolean
+ * }} An object containing speech recognition state and control functions.
+ */
 export const useSpeechRecognition = (
     { onTranscriptChanged }: { onTranscriptChanged: (transcript: string) => void }
 ) => {

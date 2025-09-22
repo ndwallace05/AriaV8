@@ -12,6 +12,16 @@ interface CalendarViewProps {
   requestApiAccess: () => void;
 }
 
+/**
+ * Renders the calendar view, displaying events for the selected month.
+ * It allows navigation between months and adding events via voice command.
+ * @param {CalendarViewProps} props The component props.
+ * @param {CalendarEvent[]} props.events The list of calendar events to display.
+ * @param {React.Dispatch<React.SetStateAction<CalendarEvent[]>>} props.setEvents The function to update the events state.
+ * @param {string | null} props.accessToken The Google API access token.
+ * @param {() => void} props.requestApiAccess The function to call when API access is requested.
+ * @returns {React.ReactElement} The rendered calendar view.
+ */
 const CalendarView: React.FC<CalendarViewProps> = ({ events, setEvents, accessToken, requestApiAccess }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
@@ -30,17 +40,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({ events, setEvents, accessTo
     day.setDate(day.getDate() + 1);
   }
 
+  /**
+   * Changes the current month being viewed.
+   * @param {number} amount The number of months to change by (e.g., 1 for next, -1 for previous).
+   */
   const changeMonth = (amount: number) => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + amount, 1));
   };
 
+  /**
+   * Checks if two dates are the same day, ignoring time.
+   * @param {Date} d1 The first date.
+   * @param {Date} d2 The second date.
+   * @returns {boolean} True if the dates are the same day.
+   */
   const isSameDay = (d1: Date, d2: Date) => 
     d1.getFullYear() === d2.getFullYear() &&
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate();
 
+  /**
+   * Checks if a given date is today.
+   * @param {Date} d The date to check.
+   * @returns {boolean} True if the date is today.
+   */
   const isToday = (d: Date) => isSameDay(d, new Date());
   
+  /**
+   * Handles the voice command to add a calendar event.
+   * @param {string} command The transcribed voice command.
+   */
   const handleVoiceCommand = async (command: string) => {
     if (!command) return;
     

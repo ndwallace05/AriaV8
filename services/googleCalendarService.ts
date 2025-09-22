@@ -2,7 +2,12 @@ import { CalendarEvent } from '../types';
 
 const CALENDAR_API_BASE_URL = 'https://www.googleapis.com/calendar/v3';
 
-// Fetches events from now until 1 year from now
+/**
+ * Fetches calendar events from the user's primary calendar for the next year.
+ * @param {string} accessToken The Google API access token.
+ * @returns {Promise<CalendarEvent[]>} A promise that resolves to a list of calendar events.
+ * @throws {Error} If the API request fails.
+ */
 export const listCalendarEvents = async (accessToken: string): Promise<CalendarEvent[]> => {
     const timeMin = new Date().toISOString();
     const timeMax = new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString();
@@ -35,6 +40,13 @@ export const listCalendarEvents = async (accessToken: string): Promise<CalendarE
     });
 };
 
+/**
+ * Creates a new all-day event in the user's primary calendar.
+ * @param {string} accessToken The Google API access token.
+ * @param {{ title: string, date: string }} event An object containing the event's title and date in 'YYYY-MM-DD' format.
+ * @returns {Promise<CalendarEvent>} A promise that resolves to the newly created calendar event.
+ * @throws {Error} If the API request fails.
+ */
 export const createCalendarEvent = async (accessToken: string, event: { title: string, date: string }): Promise<CalendarEvent> => {
     // The date from Gemini is 'YYYY-MM-DD'. This is suitable for an all-day event.
     const eventResource = {

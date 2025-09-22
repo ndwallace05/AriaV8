@@ -16,6 +16,11 @@ import { listTasks } from './services/googleTasksService';
 import { getMemories, saveMemory } from './services/memoryService';
 import { getAriaResponse } from './services/geminiService';
 
+/**
+ * The main application component for Aria.
+ * It manages the overall state, navigation, and data fetching for the application.
+ * @returns {React.ReactElement} The rendered application.
+ */
 const App: React.FC = () => {
     const [view, setView] = useState<View>(View.DASHBOARD);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -33,6 +38,10 @@ const App: React.FC = () => {
 
     const { isLoggedIn, accessToken, userProfile, login, logout, isApiReady } = useGoogleAuth();
 
+    /**
+     * Fetches data from Google services (Calendar, Gmail, Tasks)
+     * when the user is logged in.
+     */
     const fetchData = useCallback(async () => {
         if (isLoggedIn && accessToken) {
             try {
@@ -58,6 +67,10 @@ const App: React.FC = () => {
         fetchData();
     }, [fetchData]);
 
+    /**
+     * Handles sending a message to the Aria assistant and processing the response.
+     * @param {string} message The message from the user.
+     */
     const handleSendMessage = async (message: string) => {
         const newUserMessage: ChatMessage = { role: 'user', content: message };
         const newHistory = [...chatMessages, newUserMessage];
@@ -90,10 +103,17 @@ const App: React.FC = () => {
         }
     };
     
+    /**
+     * Switches the main view to the Settings page.
+     */
     const requestApiAccess = () => {
         setView(View.SETTINGS);
     };
 
+    /**
+     * Renders the main content view based on the current `view` state.
+     * @returns {React.ReactElement} The component for the current view.
+     */
     const renderView = () => {
         switch (view) {
             case View.DASHBOARD: return <DashboardView tasks={tasks} emails={emails} events={events} />;

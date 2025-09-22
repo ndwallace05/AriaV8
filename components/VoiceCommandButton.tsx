@@ -7,11 +7,22 @@ interface VoiceCommandButtonProps {
     isProcessing: boolean;
 }
 
+/**
+ * Renders a button that allows users to issue voice commands.
+ * It uses the `useSpeechRecognition` hook to handle the speech-to-text functionality.
+ * @param {VoiceCommandButtonProps} props The component props.
+ * @param {(command: string) => void} props.onCommand The function to call when a voice command is transcribed.
+ * @param {boolean} props.isProcessing Whether a command is currently being processed.
+ * @returns {React.ReactElement | null} The rendered button or null if speech recognition is not supported.
+ */
 const VoiceCommandButton: React.FC<VoiceCommandButtonProps> = ({ onCommand, isProcessing }) => {
     const { isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition({
         onTranscriptChanged: onCommand
     });
 
+    /**
+     * Toggles the speech recognition listening state.
+     */
     const handleClick = () => {
         if (isListening) {
             stopListening();

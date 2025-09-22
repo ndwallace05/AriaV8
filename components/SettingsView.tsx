@@ -10,6 +10,16 @@ interface SettingsViewProps {
     logout: () => void;
 }
 
+/**
+ * Renders the settings view, which allows users to connect or disconnect their Google account.
+ * @param {SettingsViewProps} props The component props.
+ * @param {boolean} props.isApiReady Whether the Google API is ready to be used.
+ * @param {boolean} props.isLoggedIn Whether the user is currently logged in.
+ * @param {UserProfile | null} props.userProfile The user's Google profile information.
+ * @param {() => void} props.login The function to initiate the login process.
+ * @param {() => void} props.logout The function to initiate the logout process.
+ * @returns {React.ReactElement} The rendered settings view.
+ */
 const SettingsView: React.FC<SettingsViewProps> = ({ isApiReady, isLoggedIn, userProfile, login, logout }) => {
     return (
         <div className="p-4 md:p-8">

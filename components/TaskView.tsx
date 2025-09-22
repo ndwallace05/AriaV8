@@ -12,11 +12,25 @@ interface TaskViewProps {
     requestApiAccess: () => void;
 }
 
+/**
+ * Renders the task view, displaying pending and completed tasks.
+ * It allows adding, completing, and managing tasks via voice command.
+ * @param {TaskViewProps} props The component props.
+ * @param {Task[]} props.tasks The list of tasks to display.
+ * @param {React.Dispatch<React.SetStateAction<Task[]>>} props.setTasks The function to update the tasks state.
+ * @param {string | null} props.accessToken The Google API access token.
+ * @param {() => void} props.requestApiAccess The function to call when API access is requested.
+ * @returns {React.ReactElement} The rendered task view.
+ */
 const TaskView: React.FC<TaskViewProps> = ({ tasks, setTasks, accessToken, requestApiAccess }) => {
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [isProcessingVoice, setIsProcessingVoice] = useState(false);
     const [isAddingTask, setIsAddingTask] = useState(false);
 
+    /**
+     * Handles adding a new task from the input form.
+     * @param {React.FormEvent} [e] The form event, if submitted via form.
+     */
     const handleAddTask = async (e?: React.FormEvent) => {
         e?.preventDefault();
         if (!newTaskTitle.trim() || !accessToken) return;
@@ -34,6 +48,11 @@ const TaskView: React.FC<TaskViewProps> = ({ tasks, setTasks, accessToken, reque
         }
     };
 
+    /**
+     * Handles marking a task as complete.
+     * Uses an optimistic UI update.
+     * @param {Task} task The task to complete.
+     */
     const handleCompleteTask = async (task: Task) => {
         if (!accessToken) return;
         
@@ -51,6 +70,10 @@ const TaskView: React.FC<TaskViewProps> = ({ tasks, setTasks, accessToken, reque
         }
     };
 
+    /**
+     * Handles voice commands for the task view.
+     * @param {string} command The transcribed voice command.
+     */
     const handleVoiceCommand = async (command: string) => {
         if (!command || !accessToken) return;
         

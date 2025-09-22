@@ -11,10 +11,26 @@ interface ChatWindowProps {
   isLoading: boolean;
 }
 
+/**
+ * Renders the chat window for interacting with the Aria assistant.
+ * It displays messages, handles user input, and supports voice commands.
+ * @param {ChatWindowProps} props The component props.
+ * @param {boolean} props.isOpen Whether the chat window is open.
+ * @param {() => void} props.onClose The function to call when the chat window is closed.
+ * @param {ChatMessage[]} props.messages The list of chat messages to display.
+ * @param {(message: string) => void} props.onSendMessage The function to call when a message is sent.
+ * @param {boolean} props.isLoading Whether the assistant is currently processing a message.
+ * @returns {React.ReactElement | null} The rendered chat window or null if it's closed.
+ */
 const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, messages, onSendMessage, isLoading }) => {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Callback for the speech recognition hook.
+   * Updates the input field and sends the message when a transcript is finalized.
+   * @param {string} transcript The finalized transcript from speech recognition.
+   */
   const handleTranscriptChanged = (transcript: string) => {
     setInputValue(transcript);
     onSendMessage(transcript);
@@ -22,12 +38,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, messages, onSe
   
   const { isListening, startListening, stopListening, hasRecognitionSupport } = useSpeechRecognition({ onTranscriptChanged: handleTranscriptChanged });
 
+  /**
+   * Scrolls the message list to the bottom.
+   */
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(scrollToBottom, [messages]);
 
+  /**
+   * Handles the submission of the message input form.
+   * @param {React.FormEvent} e The form event.
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
@@ -36,6 +59,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, messages, onSe
     }
   };
   
+  /**
+   * Toggles the speech recognition listening state.
+   */
   const handleMicClick = () => {
     if (isListening) {
       stopListening();

@@ -2,7 +2,12 @@ import { Email } from '../types';
 
 const GMAIL_API_BASE_URL = 'https://gmail.googleapis.com/gmail/v1/users/me';
 
-// Fetches the 20 most recent emails from the user's inbox
+/**
+ * Fetches the 20 most recent emails from the user's inbox.
+ * @param {string} accessToken The Google API access token.
+ * @returns {Promise<Email[]>} A promise that resolves to a list of emails.
+ * @throws {Error} If the API request fails.
+ */
 export const listEmails = async (accessToken: string): Promise<Email[]> => {
     // 1. Get list of message IDs
     const listResponse = await fetch(`${GMAIL_API_BASE_URL}/messages?maxResults=20`, {
@@ -40,7 +45,13 @@ export const listEmails = async (accessToken: string): Promise<Email[]> => {
     return emails.filter((e): e is Email => e !== null);
 };
 
-// Marks a specific email as read by removing the 'UNREAD' label
+/**
+ * Marks a specific email as read by removing the 'UNREAD' label.
+ * @param {string} accessToken The Google API access token.
+ * @param {string} messageId The ID of the email message to mark as read.
+ * @returns {Promise<void>} A promise that resolves when the operation is complete.
+ * @throws {Error} If the API request fails.
+ */
 export const markEmailAsRead = async (accessToken: string, messageId: string): Promise<void> => {
     const response = await fetch(`${GMAIL_API_BASE_URL}/messages/${messageId}/modify`, {
         method: 'POST',

@@ -8,6 +8,15 @@ interface DashboardViewProps {
   events: CalendarEvent[];
 }
 
+/**
+ * Renders the dashboard view, which provides a summary of unread emails,
+ * upcoming events, and pending tasks.
+ * @param {DashboardViewProps} props The component props.
+ * @param {Task[]} props.tasks The list of tasks.
+ * @param {Email[]} props.emails The list of emails.
+ * @param {CalendarEvent[]} props.events The list of calendar events.
+ * @returns {React.ReactElement} The rendered dashboard view.
+ */
 const DashboardView: React.FC<DashboardViewProps> = ({ tasks, emails, events }) => {
 
   const unreadEmails = emails.filter(e => !e.read);

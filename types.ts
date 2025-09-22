@@ -4,6 +4,7 @@ export enum View {
   EMAIL = 'EMAIL',
   TASKS = 'TASKS',
   MEMORY = 'MEMORY',
+  SETTINGS = 'SETTINGS',
 }
 
 export interface ChatMessage {
@@ -35,4 +36,10 @@ export interface Memory {
   id: string;
   content: string;
   timestamp: string;
+}
+
+export interface UserProfile {
+    name: string;
+    email: string;
+    picture: string;
 }

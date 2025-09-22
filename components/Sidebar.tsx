@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from '../types';
+import { View, UserProfile } from '../types';
 import { ICONS } from '../constants';
 
 interface SidebarProps {
@@ -7,15 +7,17 @@ interface SidebarProps {
   setView: (view: View) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  userProfile: UserProfile | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOpen, userProfile }) => {
   const navItems = [
     { view: View.DASHBOARD, icon: ICONS.dashboard, label: 'Dashboard' },
     { view: View.CALENDAR, icon: ICONS.calendar, label: 'Calendar' },
     { view: View.EMAIL, icon: ICONS.email, label: 'Email' },
     { view: View.TASKS, icon: ICONS.tasks, label: 'Tasks' },
     { view: View.MEMORY, icon: ICONS.brain, label: 'Memory' },
+    { view: View.SETTINGS, icon: ICONS.settings, label: 'Settings' },
   ];
 
   const handleItemClick = (view: View) => {
@@ -58,9 +60,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
             ))}
           </ul>
         </nav>
-        <div className="bg-slate-100 p-4 rounded-lg text-center">
-          <p className="text-sm text-slate-600">Your Personal AI Assistant</p>
-        </div>
+        {userProfile ? (
+            <div className="bg-slate-50 p-3 rounded-lg flex items-center space-x-3 border border-slate-200">
+                <img src={userProfile.picture} alt="User" className="w-10 h-10 rounded-full" />
+                <div>
+                    <p className="font-semibold text-sm text-slate-800 truncate">{userProfile.name}</p>
+                    <p className="text-xs text-slate-500 truncate">{userProfile.email}</p>
+                </div>
+            </div>
+        ) : (
+            <div className="bg-slate-100 p-4 rounded-lg text-center">
+                <p className="text-sm text-slate-600">Your Personal AI Assistant</p>
+            </div>
+        )}
       </div>
       {isOpen && <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-20" onClick={() => setIsOpen(false)}></div>}
     </>

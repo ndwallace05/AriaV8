@@ -5,10 +5,12 @@ import CalendarView from './components/CalendarView';
 import EmailView from './components/EmailView';
 import TaskView from './components/TaskView';
 import MemoryView from './components/MemoryView';
+import SettingsView from './components/SettingsView';
 import ChatWindow from './components/ChatWindow';
 import { View, ChatMessage, CalendarEvent, Email, Task, Memory } from './types';
 import { getAriaResponse } from './services/geminiService';
 import { getMemories, saveMemory } from './services/memoryService';
+import { useGoogleAuth } from './hooks/useGoogleAuth';
 import { ICONS } from './constants';
 
 // Mock data
@@ -43,6 +45,8 @@ const App: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS);
   const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
   const [memories, setMemories] = useState<Memory[]>([]);
+  
+  const { userProfile, isLoggedIn, signIn, signOut } = useGoogleAuth();
 
   useEffect(() => {
     setMemories(getMemories());
@@ -94,6 +98,8 @@ const App: React.FC = () => {
         return <TaskView tasks={tasks} setTasks={setTasks} />;
       case View.MEMORY:
         return <MemoryView memories={memories} />;
+      case View.SETTINGS:
+        return <SettingsView userProfile={userProfile} isLoggedIn={isLoggedIn} onSignIn={signIn} onSignOut={signOut} />;
       default:
         return <DashboardView tasks={tasks} emails={emails} events={events} />;
     }
@@ -103,7 +109,7 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen bg-slate-50 font-sans flex overflow-hidden">
-      <Sidebar currentView={currentView} setView={setView} isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
+      <Sidebar currentView={currentView} setView={setView} isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} userProfile={userProfile} />
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm">
             <button onClick={() => setSidebarOpen(true)} className="text-slate-600">

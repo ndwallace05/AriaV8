@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
-
+from dataclasses import dataclass
 from livekit import agents
-from livekit.agents import AgentSession, Agent, RoomInputOptions, ChatContext
+from livekit.agents import AgentSession, Agent, RoomInputOptions, ChatContext, RunContext, function_tool
 from livekit.plugins import google
 import google_services as services
 import os
@@ -17,9 +17,12 @@ Be friendly, and concise in your responses.
 """
 SESSION_INSTRUCTION = "Hi! I'm Aria. I'm ready to help you with your calendar, emails, and tasks. What can I do for you?"
 
-class Assistant(Agent):
-    def __init__(self, access_token: str, chat_ctx=None) -> None:
-        self.access_token = access_token
+@dataclass
+class SessionData:
+    access_token: str
+
+class Assistant(Agent[SessionData]):
+    def __init__(self, chat_ctx=None) -> None:
         super().__init__(
             instructions=AGENT_INSTRUCTION,
             llm=google.beta.realtime.RealtimeModel(
@@ -37,39 +40,46 @@ class Assistant(Agent):
             chat_ctx=chat_ctx
         )
 
-    async def list_emails(self) -> str:
+    @function_tool()
+    async def list_emails(self, context: RunContext[SessionData]) -> str:
         """List the user's recent emails."""
-        emails = services.list_emails(self.access_token)
+        emails = services.list_emails(context.userdata.access_token)
         return json.dumps([e['subject'] for e in emails])
 
-    async def mark_email_as_read(self, message_id: str) -> str:
+    @function_tool()
+    async def mark_email_as_read(self, context: RunContext[SessionData], message_id: str) -> str:
         """Mark a specific email as read."""
-        success = services.mark_email_as_read(self.access_token, message_id)
+        success = services.mark_email_as_read(context.userdata.access_token, message_id)
         return "Email marked as read." if success else "Failed to mark email as read."
 
-    async def list_calendar_events(self) -> str:
+    @function_tool()
+    async def list_calendar_events(self, context: RunContext[SessionData]) -> str:
         """List the user's upcoming calendar events."""
-        events = services.list_calendar_events(self.access_token)
+        events = services.list_calendar_events(context.userdata.access_token)
         return json.dumps([{'title': e['title'], 'date': e['date']} for e in events])
 
-    async def create_calendar_event(self, title: str, date: str) -> str:
+    @function_tool()
+    async def create_calendar_event(self, context: RunContext[SessionData], title: str, date: str) -> str:
         """Create a new calendar event. Date should be in YYYY-MM-DD format."""
-        event = services.create_calendar_event(self.access_token, title, date)
+        event = services.create_calendar_event(context.userdata.access_token, title, date)
         return f"Event '{event['title']}' created."
 
-    async def list_tasks(self) -> str:
+    @function_tool()
+    async def list_tasks(self, context: RunContext[SessionData]) -> str:
         """List the user's tasks."""
-        tasks = services.list_tasks(self.access_token)
+        tasks = services.list_tasks(context.userdata.access_token)
         return json.dumps([t['title'] for t in tasks if not t['completed']])
 
-    async def create_task(self, title: str) -> str:
+    @function_tool()
+    async def create_task(self, context: RunContext[SessionData], title: str) -> str:
         """Create a new task."""
-        task = services.create_task(self.access_token, title)
+        task = services.create_task(context.userdata.access_token, title)
         return f"Task '{task['title']}' created."
 
-    async def complete_task(self, task_id: str) -> str:
+    @function_tool()
+    async def complete_task(self, context: RunContext[SessionData], task_id: str) -> str:
         """Mark a task as complete."""
-        task = services.complete_task(self.access_token, task_id)
+        task = services.complete_task(context.userdata.access_token, task_id)
         return f"Task '{task['title']}' completed."
 
 
@@ -80,15 +90,15 @@ async def entrypoint(ctx: agents.JobContext):
 
     if not access_token:
         logging.error("No access_token provided in metadata")
-        # Optionally, you could try to communicate this error back to the user
-        # For now, we'll just exit.
         return
 
     initial_ctx = ChatContext()
 
-    agent = Assistant(access_token=access_token, chat_ctx=initial_ctx)
+    session = AgentSession[SessionData](
+        userdata=SessionData(access_token=access_token)
+    )
 
-    session = AgentSession()
+    agent = Assistant(chat_ctx=initial_ctx)
 
     await session.start(
         room=ctx.room,

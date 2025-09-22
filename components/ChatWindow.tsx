@@ -47,8 +47,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ isOpen, onClose, messages, onSe
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-8 w-96 h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-200 z-50">
-      <header className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50 rounded-t-2xl">
+    <div className="fixed inset-0 md:inset-auto md:bottom-24 md:right-8 md:w-96 md:h-[500px] bg-white rounded-none md:rounded-2xl shadow-2xl flex flex-col border-slate-200 z-50">
+      <header className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50 md:rounded-t-2xl">
         <h2 className="text-lg font-semibold text-slate-800">Aria Assistant</h2>
         <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
           {ICONS.close}

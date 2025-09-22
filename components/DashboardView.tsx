@@ -15,7 +15,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ tasks, emails, events }) 
   const pendingTasks = tasks.filter(t => !t.completed).slice(0, 3);
 
   return (
-    <div className="p-8 h-full overflow-y-auto">
+    <div className="p-4 md:p-8">
       <h1 className="text-3xl font-bold text-slate-800 mb-8">Dashboard</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         

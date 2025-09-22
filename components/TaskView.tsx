@@ -34,10 +34,10 @@ const TaskView: React.FC<TaskViewProps> = ({ tasks, setTasks }) => {
   const pendingTasks = tasks.filter(t => !t.completed);
 
   return (
-    <div className="p-8 h-full overflow-y-auto">
+    <div className="p-4 md:p-8">
       <h1 className="text-3xl font-bold text-slate-800 mb-8">Tasks</h1>
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-        <form onSubmit={handleAddTask} className="flex gap-2 mb-6">
+        <form onSubmit={handleAddTask} className="flex flex-col sm:flex-row gap-2 mb-6">
           <input
             type="text"
             value={newTaskTitle}

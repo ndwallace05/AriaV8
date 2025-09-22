@@ -10,7 +10,7 @@ const MemoryView: React.FC<MemoryViewProps> = ({ memories }) => {
   const sortedMemories = [...memories].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
-    <div className="p-8 h-full overflow-y-auto">
+    <div className="p-4 md:p-8">
       <h1 className="text-3xl font-bold text-slate-800 mb-8">Aria's Memory</h1>
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div className="space-y-4">

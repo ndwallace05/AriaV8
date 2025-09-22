@@ -9,6 +9,7 @@ import ChatWindow from './components/ChatWindow';
 import { View, ChatMessage, CalendarEvent, Email, Task, Memory } from './types';
 import { getAriaResponse } from './services/geminiService';
 import { getMemories, saveMemory } from './services/memoryService';
+import { ICONS } from './constants';
 
 // Mock data
 const MOCK_EMAILS: Email[] = [
@@ -32,6 +33,7 @@ const MOCK_TASKS: Task[] = [
 const App: React.FC = () => {
   const [currentView, setView] = useState<View>(View.DASHBOARD);
   const [isChatOpen, setChatOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'model', content: "Hi! I'm Aria, your personal AI assistant. How can I help you today?" }
   ]);
@@ -54,9 +56,8 @@ const App: React.FC = () => {
     try {
       const responseText = await getAriaResponse(newMessages, memories);
       
-      // Check if response is a memory command
       try {
-        const jsonMatch = responseText.match(/{.*}/s); // Find JSON-like string
+        const jsonMatch = responseText.match(/{.*}/s); 
         if (jsonMatch) {
             const responseObject = JSON.parse(jsonMatch[0]);
             if (responseObject.memory) {
@@ -98,16 +99,27 @@ const App: React.FC = () => {
     }
   };
 
+  const capitalize = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+
   return (
-    <div className="flex h-screen bg-slate-50 font-sans">
-      <Sidebar currentView={currentView} setView={setView} />
+    <div className="h-screen bg-slate-50 font-sans flex overflow-hidden">
+      <Sidebar currentView={currentView} setView={setView} isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} />
       <main className="flex-1 flex flex-col overflow-hidden">
-        {renderView()}
+        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm">
+            <button onClick={() => setSidebarOpen(true)} className="text-slate-600">
+                {ICONS.hamburger}
+            </button>
+            <h1 className="text-lg font-bold text-slate-800">{capitalize(currentView)}</h1>
+            <div className="w-6"></div>
+        </header>
+        <div className="flex-grow overflow-y-auto">
+            {renderView()}
+        </div>
       </main>
       
       <button
         onClick={() => setChatOpen(!isChatOpen)}
-        className="fixed bottom-8 right-8 bg-sky-500 text-white p-4 rounded-full shadow-lg hover:bg-sky-600 transition-transform transform hover:scale-110 z-40"
+        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-sky-500 text-white p-4 rounded-full shadow-lg hover:bg-sky-600 transition-transform transform hover:scale-110 z-40"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
       </button>

@@ -30,9 +30,9 @@ const CalendarView: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
   const isToday = (d: Date) => isSameDay(d, new Date());
 
   return (
-    <div className="p-8 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-slate-800">
+    <div className="p-4 md:p-8 flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-800 text-center sm:text-left">
           {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </h1>
         <div className="flex space-x-2">
@@ -43,16 +43,16 @@ const CalendarView: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
       </div>
 
       <div className="grid grid-cols-7 text-center font-semibold text-slate-500 border-b border-slate-200 pb-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d}>{d}</div>)}
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
       </div>
 
       <div className="grid grid-cols-7 grid-rows-6 flex-grow gap-px bg-slate-200 border-l border-r border-b border-slate-200 rounded-b-lg overflow-hidden">
         {days.map((d, i) => {
           const eventsForDay = events.filter(e => isSameDay(e.date, d));
           return (
-            <div key={i} className={`bg-white p-2 flex flex-col ${d.getMonth() !== currentDate.getMonth() ? 'bg-slate-50' : ''}`}>
-              <div className={`text-sm font-semibold mb-1 self-end ${
-                isToday(d) ? 'bg-sky-500 text-white rounded-full h-7 w-7 flex items-center justify-center' : 'text-slate-700'
+            <div key={i} className={`bg-white p-1 sm:p-2 flex flex-col ${d.getMonth() !== currentDate.getMonth() ? 'bg-slate-50' : ''}`}>
+              <div className={`text-xs sm:text-sm font-semibold mb-1 self-end ${
+                isToday(d) ? 'bg-sky-500 text-white rounded-full h-6 w-6 sm:h-7 sm:w-7 flex items-center justify-center' : 'text-slate-700'
               } ${d.getMonth() !== currentDate.getMonth() ? 'text-slate-400' : ''}`}>
                 {d.getDate()}
               </div>

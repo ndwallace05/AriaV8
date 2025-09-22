@@ -1,84 +1,111 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { UserProfile } from '../types';
 import { GOOGLE_CLIENT_ID } from '../config';
 
-// Define the google object which comes from the GSI script
-declare const google: any;
-
-const USER_KEY = 'aria_google_user';
+const SCOPES = [
+    'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/tasks.readonly',
+    'https://www.googleapis.com/auth/tasks',
+].join(' ');
 
 export const useGoogleAuth = () => {
+    const [isApiReady, setIsApiReady] = useState(false);
+    const [accessToken, setAccessToken] = useState<string | null>(null);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const isLoggedIn = !!userProfile;
 
-    // Load user from localStorage on initial render
-    useEffect(() => {
-        try {
-            const storedUser = localStorage.getItem(USER_KEY);
-            if (storedUser) {
-                setUserProfile(JSON.parse(storedUser));
+    const tokenClient = useRef<any>(null);
+
+    const handleAuthResult = useCallback(async (tokenResponse: any) => {
+        if (tokenResponse.access_token) {
+            setAccessToken(tokenResponse.access_token);
+            localStorage.setItem('g_access_token', tokenResponse.access_token);
+            // Fetch user profile
+            try {
+                const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { 'Authorization': `Bearer ${tokenResponse.access_token}` }
+                });
+                if (profileResponse.ok) {
+                    const profile = await profileResponse.json();
+                    const user: UserProfile = {
+                        name: profile.name,
+                        email: profile.email,
+                        picture: profile.picture,
+                    };
+                    setUserProfile(user);
+                    localStorage.setItem('g_user_profile', JSON.stringify(user));
+                }
+            } catch (error) {
+                console.error("Failed to fetch user profile", error);
             }
-        } catch (error) {
-            console.error("Failed to parse user from localStorage", error);
-            localStorage.removeItem(USER_KEY);
-        }
-    }, []);
-    
-    const handleCredentialResponse = useCallback((response: any) => {
-        // The response.credential is a JWT (JSON Web Token)
-        const idToken = response.credential;
-        // You can decode the JWT to get user information
-        const userObject = JSON.parse(atob(idToken.split('.')[1]));
-        
-        const profile: UserProfile = {
-            name: userObject.name,
-            email: userObject.email,
-            picture: userObject.picture,
-        };
-        
-        setUserProfile(profile);
-        try {
-            localStorage.setItem(USER_KEY, JSON.stringify(profile));
-        } catch (error) {
-            console.error("Failed to save user to localStorage", error);
         }
     }, []);
 
     useEffect(() => {
-        if (typeof google !== 'undefined') {
-            google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: handleCredentialResponse,
-                use_fedcm_for_prompt: false,
+        // Load Google API script
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+            (window as any).gapi.load('client', async () => {
+                await (window as any).gapi.client.init({});
+                // Now load GIS script
+                const gisScript = document.createElement('script');
+                gisScript.src = 'https://accounts.google.com/gsi/client';
+                gisScript.async = true;
+                gisScript.defer = true;
+                gisScript.onload = () => {
+                    tokenClient.current = (window as any).google.accounts.oauth2.initTokenClient({
+                        client_id: GOOGLE_CLIENT_ID,
+                        scope: SCOPES,
+                        callback: handleAuthResult,
+                    });
+                    setIsApiReady(true);
+
+                    // Check for existing token
+                    const storedToken = localStorage.getItem('g_access_token');
+                    const storedProfile = localStorage.getItem('g_user_profile');
+                    if (storedToken && storedProfile) {
+                        setAccessToken(storedToken);
+                        setUserProfile(JSON.parse(storedProfile));
+                    }
+                };
+                document.body.appendChild(gisScript);
+            });
+        };
+        document.body.appendChild(script);
+    }, [handleAuthResult]);
+
+    const login = () => {
+        if (tokenClient.current) {
+            // Prompt for consent if needed
+            tokenClient.current.requestAccessToken({prompt: 'consent'});
+        } else {
+            console.error("Google Token Client not initialized.");
+        }
+    };
+
+    const logout = () => {
+        setAccessToken(null);
+        setUserProfile(null);
+        localStorage.removeItem('g_access_token');
+        localStorage.removeItem('g_user_profile');
+        if (accessToken) {
+            (window as any).google?.accounts.oauth2.revoke(accessToken, () => {
+                console.log('Token revoked');
             });
         }
-    }, [handleCredentialResponse]);
-
-    const signIn = useCallback(() => {
-        if (typeof google !== 'undefined') {
-             google.accounts.id.prompt();
-        } else {
-            console.error("Google Identity Services script not loaded.");
-            alert("Could not connect to Google Sign-In. Please try again later.");
-        }
-    }, []);
-
-    const signOut = useCallback(() => {
-        setUserProfile(null);
-        try {
-            localStorage.removeItem(USER_KEY);
-        } catch (error) {
-            console.error("Failed to remove user from localStorage", error);
-        }
-        if (typeof google !== 'undefined') {
-            google.accounts.id.disableAutoSelect();
-        }
-    }, []);
+    };
 
     return {
+        isApiReady,
+        isLoggedIn: !!accessToken,
+        accessToken,
         userProfile,
-        isLoggedIn,
-        signIn,
-        signOut,
+        login,
+        logout,
     };
 };

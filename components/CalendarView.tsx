@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
-import { CalendarEvent } from '../types';
+import { CalendarEvent, View } from '../types';
+import VoiceCommandButton from './VoiceCommandButton';
+import { getAriaAction } from '../services/geminiService';
+import { createCalendarEvent } from '../services/googleCalendarService';
+import { ICONS } from '../constants';
 
-const CalendarView: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
+interface CalendarViewProps {
+  events: CalendarEvent[];
+  setEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
+  accessToken: string | null;
+  requestApiAccess: () => void;
+}
+
+const CalendarView: React.FC<CalendarViewProps> = ({ events, setEvents, accessToken, requestApiAccess }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
   const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
   const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -28,6 +40,53 @@ const CalendarView: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
     d1.getDate() === d2.getDate();
 
   const isToday = (d: Date) => isSameDay(d, new Date());
+  
+  const handleVoiceCommand = async (command: string) => {
+    if (!command) return;
+    
+    if (!accessToken) {
+        alert("Please sync your Google Calendar from the Settings page to add events by voice.");
+        return;
+    }
+
+    setIsProcessingVoice(true);
+    try {
+        const result = await getAriaAction(command, View.CALENDAR, {});
+        if (result && result.action === 'ADD_EVENT' && result.payload.title && result.payload.date) {
+            const newEventDetails = {
+                title: result.payload.title,
+                date: result.payload.date, // This should be in 'YYYY-MM-DD' format
+            };
+            const createdEvent = await createCalendarEvent(accessToken, newEventDetails);
+            setEvents(prev => [...prev, createdEvent]);
+        }
+    } catch (error) {
+        console.error("Error processing voice command for calendar:", error);
+        alert("Sorry, I couldn't add the event to your Google Calendar.");
+    } finally {
+        setIsProcessingVoice(false);
+    }
+  };
+
+  if (!accessToken) {
+    return (
+        <div className="p-4 md:p-8 flex flex-col h-full items-center justify-center text-center">
+            <div className="max-w-md">
+                <div className="text-sky-500 mx-auto w-16 h-16 mb-4">
+                    {ICONS.calendar}
+                </div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Connect Your Calendar</h2>
+                <p className="text-slate-500 mb-6">To see and manage your events, please connect your Google Calendar in the settings.</p>
+                <button 
+                    onClick={requestApiAccess} 
+                    className="px-6 py-3 rounded-lg bg-sky-500 text-white hover:bg-sky-600 font-semibold shadow-md"
+                >
+                    Connect Google Calendar
+                </button>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-8 flex flex-col h-full">
@@ -35,10 +94,11 @@ const CalendarView: React.FC<{ events: CalendarEvent[] }> = ({ events }) => {
         <h1 className="text-2xl md:text-3xl font-bold text-slate-800 text-center sm:text-left">
           {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </h1>
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 items-center">
           <button onClick={() => changeMonth(-1)} className="px-3 py-1 bg-white border border-slate-300 rounded-md text-slate-600 hover:bg-slate-100">&lt;</button>
           <button onClick={() => setCurrentDate(new Date())} className="px-4 py-1 bg-white border border-slate-300 rounded-md text-slate-600 hover:bg-slate-100">Today</button>
           <button onClick={() => changeMonth(1)} className="px-3 py-1 bg-white border border-slate-300 rounded-md text-slate-600 hover:bg-slate-100">&gt;</button>
+          <VoiceCommandButton onCommand={handleVoiceCommand} isProcessing={isProcessingVoice} />
         </div>
       </div>
 

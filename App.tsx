@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, ChatMessage, Task, CalendarEvent, Email, Memory } from './types';
 import Sidebar from './components/Sidebar';
 import DashboardView from './components/DashboardView';
 import CalendarView from './components/CalendarView';
@@ -7,138 +8,141 @@ import TaskView from './components/TaskView';
 import MemoryView from './components/MemoryView';
 import SettingsView from './components/SettingsView';
 import ChatWindow from './components/ChatWindow';
-import { View, ChatMessage, CalendarEvent, Email, Task, Memory } from './types';
-import { getAriaResponse } from './services/geminiService';
-import { getMemories, saveMemory } from './services/memoryService';
-import { useGoogleAuth } from './hooks/useGoogleAuth';
 import { ICONS } from './constants';
-
-// Mock data
-const MOCK_EMAILS: Email[] = [
-  { id: '1', sender: 'GitHub', subject: 'Your weekly digest', body: 'Here is your weekly digest from GitHub...', read: false },
-  { id: '2', sender: 'Vercel', subject: 'Deployment successful', body: 'Your project has been deployed successfully.', read: true },
-  { id: '3', sender: 'Slack', subject: 'New message from John', body: 'Hey, are we still on for lunch tomorrow?', read: false },
-];
-
-const MOCK_EVENTS: CalendarEvent[] = [
-  { id: '1', title: 'Team Standup', date: new Date(new Date().setDate(new Date().getDate() + 1)) },
-  { id: '2', title: 'Design Review', date: new Date(new Date().setDate(new Date().getDate() + 2)) },
-  { id: '3', title: 'Project Deadline', date: new Date(new Date().setDate(new Date().getDate() + 5)) },
-];
-
-const MOCK_TASKS: Task[] = [
-  { id: '1', title: 'Finish report for Q2', completed: false },
-  { id: '2', title: 'Review PR from Sarah', completed: false },
-  { id: '3', title: 'Update documentation', completed: true },
-];
+import { useGoogleAuth } from './hooks/useGoogleAuth';
+import { listCalendarEvents } from './services/googleCalendarService';
+import { listEmails } from './services/gmailService';
+import { listTasks } from './services/googleTasksService';
+import { getMemories, saveMemory } from './services/memoryService';
+import { getAriaResponse } from './services/geminiService';
 
 const App: React.FC = () => {
-  const [currentView, setView] = useState<View>(View.DASHBOARD);
-  const [isChatOpen, setChatOpen] = useState(false);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'model', content: "Hi! I'm Aria, your personal AI assistant. How can I help you today?" }
-  ]);
-  const [isLoading, setIsLoading] = useState(false);
+    const [view, setView] = useState<View>(View.DASHBOARD);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+        { role: 'model', content: "Hi! I'm Aria, your personal AI assistant. How can I help you today?" }
+    ]);
+    const [isAriaLoading, setIsAriaLoading] = useState(false);
 
-  const [emails, setEmails] = useState<Email[]>(MOCK_EMAILS);
-  const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS);
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
-  const [memories, setMemories] = useState<Memory[]>([]);
-  
-  const { userProfile, isLoggedIn, signIn, signOut } = useGoogleAuth();
+    // Data states
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [emails, setEmails] = useState<Email[]>([]);
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [memories, setMemories] = useState<Memory[]>(getMemories());
 
-  useEffect(() => {
-    setMemories(getMemories());
-  }, []);
+    const { isLoggedIn, accessToken, userProfile, login, logout, isApiReady } = useGoogleAuth();
 
-  const handleSendMessage = async (message: string) => {
-    const newMessages: ChatMessage[] = [...messages, { role: 'user', content: message }];
-    setMessages(newMessages);
-    setIsLoading(true);
-
-    try {
-      const responseText = await getAriaResponse(newMessages, memories);
-      
-      try {
-        const jsonMatch = responseText.match(/{.*}/s); 
-        if (jsonMatch) {
-            const responseObject = JSON.parse(jsonMatch[0]);
-            if (responseObject.memory) {
-              const newMemory = saveMemory({ content: responseObject.memory });
-              setMemories(prev => [...prev, newMemory]);
-              setMessages(prev => [...prev, { role: 'model', content: `Ok, I'll remember that: "${responseObject.memory}"` }]);
-              setIsLoading(false);
-              return;
+    const fetchData = useCallback(async () => {
+        if (isLoggedIn && accessToken) {
+            try {
+                const [calendarData, emailData, taskData] = await Promise.all([
+                    listCalendarEvents(accessToken),
+                    listEmails(accessToken),
+                    listTasks(accessToken)
+                ]);
+                setEvents(calendarData);
+                setEmails(emailData);
+                setTasks(taskData);
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                // Handle token expiration or other auth errors by logging out
+                if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
+                    logout();
+                }
             }
         }
-      } catch (e) {
-        // Not a valid JSON object, treat as a normal text response
-      }
+    }, [isLoggedIn, accessToken, logout]);
 
-      setMessages(prev => [...prev, { role: 'model', content: responseText }]);
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
-    } catch (error) {
-      console.error("Failed to get response from Aria:", error);
-      setMessages(prev => [...prev, { role: 'model', content: "Sorry, I'm having trouble connecting. Please try again later." }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    const handleSendMessage = async (message: string) => {
+        const newUserMessage: ChatMessage = { role: 'user', content: message };
+        const newHistory = [...chatMessages, newUserMessage];
+        setChatMessages(newHistory);
+        setIsAriaLoading(true);
 
-  const renderView = () => {
-    switch (currentView) {
-      case View.DASHBOARD:
-        return <DashboardView tasks={tasks} emails={emails} events={events} />;
-      case View.CALENDAR:
-        return <CalendarView events={events} />;
-      case View.EMAIL:
-        return <EmailView emails={emails} />;
-      case View.TASKS:
-        return <TaskView tasks={tasks} setTasks={setTasks} />;
-      case View.MEMORY:
-        return <MemoryView memories={memories} />;
-      case View.SETTINGS:
-        return <SettingsView userProfile={userProfile} isLoggedIn={isLoggedIn} onSignIn={signIn} onSignOut={signOut} />;
-      default:
-        return <DashboardView tasks={tasks} emails={emails} events={events} />;
-    }
-  };
+        try {
+            const responseText = await getAriaResponse(newHistory, memories);
+            
+            // Check if response is a memory command
+            try {
+                const jsonResponse = JSON.parse(responseText);
+                if (jsonResponse.memory) {
+                    const newMemory = saveMemory({ content: jsonResponse.memory });
+                    setMemories(prev => [...prev, newMemory]);
+                    setChatMessages(prev => [...prev, { role: 'model', content: `Okay, I'll remember that: "${jsonResponse.memory}"` }]);
+                } else {
+                    throw new Error("Not a memory object");
+                }
+            } catch (e) {
+                // Not a JSON memory object, treat as regular text
+                setChatMessages(prev => [...prev, { role: 'model', content: responseText }]);
+            }
 
-  const capitalize = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
+        } catch (error) {
+            console.error("Error getting Aria's response:", error);
+            setChatMessages(prev => [...prev, { role: 'model', content: "Sorry, I'm having trouble connecting right now." }]);
+        } finally {
+            setIsAriaLoading(false);
+        }
+    };
+    
+    const requestApiAccess = () => {
+        setView(View.SETTINGS);
+    };
 
-  return (
-    <div className="h-screen bg-slate-50 font-sans flex overflow-hidden">
-      <Sidebar currentView={currentView} setView={setView} isOpen={isSidebarOpen} setIsOpen={setSidebarOpen} userProfile={userProfile} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white shadow-sm">
-            <button onClick={() => setSidebarOpen(true)} className="text-slate-600">
-                {ICONS.hamburger}
-            </button>
-            <h1 className="text-lg font-bold text-slate-800">{capitalize(currentView)}</h1>
-            <div className="w-6"></div>
-        </header>
-        <div className="flex-grow overflow-y-auto">
-            {renderView()}
+    const renderView = () => {
+        switch (view) {
+            case View.DASHBOARD: return <DashboardView tasks={tasks} emails={emails} events={events} />;
+            case View.CALENDAR: return <CalendarView events={events} setEvents={setEvents} accessToken={accessToken} requestApiAccess={requestApiAccess} />;
+            case View.EMAIL: return <EmailView emails={emails} setEmails={setEmails} accessToken={accessToken} requestApiAccess={requestApiAccess} />;
+            case View.TASKS: return <TaskView tasks={tasks} setTasks={setTasks} accessToken={accessToken} requestApiAccess={requestApiAccess} />;
+            case View.MEMORY: return <MemoryView memories={memories} />;
+            case View.SETTINGS: return <SettingsView isApiReady={isApiReady} isLoggedIn={isLoggedIn} userProfile={userProfile} login={login} logout={logout} />;
+            default: return <DashboardView tasks={tasks} emails={emails} events={events} />;
+        }
+    };
+
+    return (
+        <div className="flex h-screen bg-slate-100 font-sans">
+            <Sidebar currentView={view} setView={setView} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} userProfile={userProfile} />
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <header className="md:hidden flex justify-between items-center p-4 bg-white border-b border-slate-200">
+                    <button onClick={() => setIsSidebarOpen(true)} className="text-slate-600">
+                        {ICONS.hamburger}
+                    </button>
+                    <h1 className="text-xl font-bold text-slate-800">Aria</h1>
+                    <div className="w-6"></div> {/* Placeholder for balance */}
+                </header>
+
+                <main className="flex-1 overflow-y-auto">
+                    {renderView()}
+                </main>
+            </div>
+            
+            <ChatWindow 
+                isOpen={isChatOpen} 
+                onClose={() => setIsChatOpen(false)} 
+                messages={chatMessages} 
+                onSendMessage={handleSendMessage} 
+                isLoading={isAriaLoading} 
+            />
+
+            {!isChatOpen && (
+                <button
+                    onClick={() => setIsChatOpen(true)}
+                    className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-sky-500 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center hover:bg-sky-600 transition-transform hover:scale-110"
+                    aria-label="Open Aria Assistant"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                </button>
+            )}
         </div>
-      </main>
-      
-      <button
-        onClick={() => setChatOpen(!isChatOpen)}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 bg-sky-500 text-white p-4 rounded-full shadow-lg hover:bg-sky-600 transition-transform transform hover:scale-110 z-40"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" /></svg>
-      </button>
-
-      <ChatWindow
-        isOpen={isChatOpen}
-        onClose={() => setChatOpen(false)}
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
-    </div>
-  );
+    );
 };
 
 export default App;

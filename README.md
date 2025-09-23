@@ -71,6 +71,8 @@ Follow the steps in the previous documentation to set up a GCP project, enable t
 
 ## 🚀 Running the Application
 
+### Local Development
+
 You need to run three processes in separate terminals: the Python agent, the Python token server, and the frontend development server.
 
 1.  **Run the Python Agent**:
@@ -87,6 +89,21 @@ You need to run three processes in separate terminals: the Python agent, the Pyt
     ```
 
 The application will be available at `http://localhost:5173`.
+
+### Docker
+
+Alternatively, you can build and run the entire application using Docker.
+
+1.  **Build the Docker image**:
+    ```bash
+    docker build -t aria-assistant .
+    ```
+2.  **Run the Docker container**:
+    Make sure your `.env` file is present in the root of the project.
+    ```bash
+    docker run -p 80:80 -p 5001:5001 --env-file .env aria-assistant
+    ```
+    The application will be available at `http://localhost`.
 
 ## 🎤 Usage
 

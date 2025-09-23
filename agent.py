@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from dataclasses import dataclass
 from livekit import agents
 from livekit.agents import Agent, AgentSession, ChatContext, RunContext, function_tool
-from livekit.protocol import ChatMessage
+from livekit.agents.llm import ChatMessage
 from livekit.plugins import google
 import google_services as services
 from memori import Memori, create_memory_tool

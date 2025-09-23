@@ -2,7 +2,7 @@ import os
 import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from livekit import AccessToken, VideoGrant
+from livekit.api import AccessToken, VideoGrants
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -44,7 +44,7 @@ def get_livekit_token():
 
     # Create a LiveKit access token
     lk_token = AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
-    grant = VideoGrant(room_join=True, room="aria-room") # A single room for all sessions for now
+    grant = VideoGrants(room_join=True, room="aria-room") # A single room for all sessions for now
 
     lk_token.with_identity(agent_identity)
     lk_token.with_metadata(json.dumps(metadata))

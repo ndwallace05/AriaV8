@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from dataclasses import dataclass
 from livekit import agents
 from livekit.agents import Agent, AgentSession, ChatContext, RunContext, function_tool
-from livekit.agents.llm import ChatMessage
+from livekit.protocol import ChatMessage
 from livekit.plugins import google
 import google_services as services
 from memori import Memori, create_memory_tool
@@ -74,7 +74,8 @@ async def search_memory(context: RunContext[SessionData], query: str, category: 
             return json.dumps(relevant[:3], indent=2) if relevant else "No relevant memories found"
         else:
             memory_tool = create_memory_tool(memori)
-            return memory_tool.execute(query=query)
+            result = memory_tool.execute(query=query)
+            return result if result is not None else "No relevant memories found"
     except Exception as e:
         return f"Memory search error: {str(e)}"
 
@@ -126,7 +127,7 @@ async def complete_task(context: RunContext[SessionData], task_id: str) -> str:
 class Assistant(Agent[SessionData]):
     async def on_chat_message(self, message: 'ChatMessage') -> None:
         # Add user message to chat history
-        self.chat_ctx.add_message(role='user', content=message.text)
+        self.chat_ctx.add_message(role='user', content=message.message)
 
         # Generate a reply
         await self.session.generate_reply()
@@ -160,12 +161,11 @@ async def entrypoint(ctx: agents.JobContext):
     )
 
     session = AgentSession[SessionData](
-        userdata=SessionData(access_token=access_token, user_id=user_id),
-        agent=agent
+        userdata=SessionData(access_token=access_token, user_id=user_id)
     )
 
     try:
-        await session.start(room=ctx.room)
+        await session.start(room=ctx.room, agent=agent)
         await ctx.connect()
     except Exception as e:
         logging.error(f"Error starting agent session: {e}")

@@ -60,8 +60,8 @@ def list_calendar_events(access_token: str):
     credentials = Credentials(token=access_token)
     service = build('calendar', 'v3', credentials=credentials)
 
-    now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
-    one_year_from_now = (datetime.datetime.utcnow() + datetime.timedelta(days=365)).isoformat() + 'Z'
+    now = f'{datetime.datetime.now(datetime.timezone.utc).isoformat()}Z'
+    one_year_from_now = f'{(datetime.datetime.utcnow() + datetime.timedelta(days=365)).isoformat()}Z'
 
     events_result = service.events().list(
         calendarId='primary', timeMin=now, timeMax=one_year_from_now,
@@ -137,7 +137,7 @@ def create_task(access_token: str, title: str):
 
     tasklists = service.tasklists().list(maxResults=1).execute()
     if not tasklists.get('items'):
-        raise Exception("No task list found.")
+        raise ValueError("No task list found.")
 
     task_list_id = tasklists['items'][0]['id']
     task = {'title': title}
@@ -157,7 +157,7 @@ def complete_task(access_token: str, task_id: str):
 
     tasklists = service.tasklists().list(maxResults=1).execute()
     if not tasklists.get('items'):
-        raise Exception("No task list found.")
+        raise ValueError("No task list found.")
 
     task_list_id = tasklists['items'][0]['id']
 

@@ -11,6 +11,7 @@ import ChatWindow from './components/ChatWindow';
 import { ICONS } from './constants';
 import { useGoogleAuth } from './hooks/useGoogleAuth';
 import { useLiveKitAgent } from './hooks/useLiveKitAgent';
+import { v4 as uuidv4 } from 'uuid';
 import { listCalendarEvents } from './services/googleCalendarService';
 import { listEmails } from './services/gmailService';
 import { listTasks } from './services/googleTasksService';
@@ -27,7 +28,18 @@ const App: React.FC = () => {
     const [isChatOpen, setIsChatOpen] = useState(false);
 
     const { isLoggedIn, accessToken, userProfile, login, logout, isApiReady } = useGoogleAuth();
-    const { messages: chatMessages, isConnected: isAgentConnected, isAgentReplying, sendChatMessage } = useLiveKitAgent(userProfile, accessToken);
+    const { messages: livekitMessages, isConnected: isAgentConnected, isAgentReplying, sendChatMessage, connectionError, isReconnecting } = useLiveKitAgent(userProfile, accessToken);
+
+    const [persistedChatMessages, setPersistedChatMessages] = useState<ChatMessage[]>([]);
+
+    useEffect(() => {
+        const messageMap = new Map<string, ChatMessage>();
+        persistedChatMessages.forEach(msg => messageMap.set(msg.id, msg));
+        livekitMessages.forEach(msg => messageMap.set(msg.id, msg));
+
+        const newMessages = Array.from(messageMap.values()).sort((a, b) => a.timestamp - b.timestamp);
+        setPersistedChatMessages(newMessages);
+    }, [livekitMessages]);
 
     // Data states
     const [tasks, setTasks] = useState<Task[]>([]);
@@ -73,8 +85,10 @@ const App: React.FC = () => {
         if (isAgentConnected) {
             sendChatMessage(message);
         } else {
-            // Handle case where agent is not connected
-            console.error("Cannot send message, agent not connected.");
+            setPersistedChatMessages(prev => [
+                ...prev,
+                { id: uuidv4(), role: 'system', content: "Agent is unavailable. Please try again later.", timestamp: Date.now() }
+            ]);
         }
     };
     
@@ -119,10 +133,12 @@ const App: React.FC = () => {
                 </main>
             </div>
             
+            {isReconnecting && <div className="reconnecting-message">Reconnecting...</div>}
+            {connectionError && <div className="connection-error">{connectionError}</div>}
             <ChatWindow 
                 isOpen={isChatOpen} 
                 onClose={() => setIsChatOpen(false)} 
-                messages={chatMessages} 
+                messages={persistedChatMessages}
                 onSendMessage={handleSendMessage} 
                 isLoading={isAgentReplying || !isAgentConnected}
             />

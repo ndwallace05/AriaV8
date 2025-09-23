@@ -9,6 +9,7 @@ from memori import Memori, create_memory_tool
 import os
 import json
 import logging
+import time
 
 load_dotenv()
 
@@ -32,9 +33,10 @@ class SessionData:
     user_id: str
 
 # Memory Management
-user_memories: dict[str, Memori] = {}
+user_memories: dict[str, dict] = {}
 
 def get_or_create_user_memory(user_id: str) -> Memori:
+    now = time.time()
     if user_id not in user_memories:
         logging.info(f"Creating new memory for user: {user_id}")
         database_url = os.environ.get("DATABASE_URL")
@@ -46,8 +48,20 @@ def get_or_create_user_memory(user_id: str) -> Memori:
             conscious_ingest=True,
         )
         user_memory.enable()
-        user_memories[user_id] = user_memory
-    return user_memories[user_id]
+        user_memories[user_id] = {"memory": user_memory, "last_access": now}
+    else:
+        user_memories[user_id]["last_access"] = now
+    return user_memories[user_id]["memory"]
+
+def cleanup_inactive_user_memories(timeout_seconds=3600):
+    now = time.time()
+    inactive_users = [
+        user_id for user_id, data in user_memories.items()
+        if now - data.get("last_access", 0) > timeout_seconds
+    ]
+    for user_id in inactive_users:
+        logging.info(f"Cleaning up inactive memory for user: {user_id}")
+        del user_memories[user_id]
 
 # Agent Tools
 @function_tool()
@@ -68,8 +82,7 @@ async def search_memory(context: RunContext[SessionData], query: str, category: 
 async def get_essential_info(context: RunContext[SessionData]) -> str:
     memori = get_or_create_user_memory(context.userdata.user_id)
     try:
-        essential = memori.get_essential_conversations(limit=10)
-        if essential:
+        if essential := memori.get_essential_conversations(limit=10):
             info = [f"- {conv.get('summary', conv.get('content', ''))}" for conv in essential if isinstance(conv, dict) and conv.get('summary', conv.get('content', ''))]
             return "Essential information about you:\\n" + "\\n".join(info[:5])
         return "No essential information available yet."
@@ -128,6 +141,7 @@ async def entrypoint(ctx: agents.JobContext):
         logging.error("No access_token or user_id provided in metadata")
         return
 
+    cleanup_inactive_user_memories()
     get_or_create_user_memory(user_id)
 
     agent = Assistant(
@@ -150,8 +164,12 @@ async def entrypoint(ctx: agents.JobContext):
         agent=agent
     )
 
-    await session.start(room=ctx.room)
-    await ctx.connect()
+    try:
+        await session.start(room=ctx.room)
+        await ctx.connect()
+    except Exception as e:
+        logging.error(f"Error starting agent session: {e}")
+        return
     # The agent will now wait for user messages instead of starting the conversation
     # await session.generate_reply(instructions=SESSION_INSTRUCTION)
 

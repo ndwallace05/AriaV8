@@ -14,10 +14,14 @@ export enum View {
  * Represents a single message in the chat window.
  */
 export interface ChatMessage {
+  /** A unique ID for the message. */
+  id: string;
   /** The role of the message sender (user or AI model). */
-  role: 'user' | 'model';
+  role: 'user' | 'model' | 'system';
   /** The text content of the message. */
   content: string;
+  /** The timestamp of the message. */
+  timestamp: number;
 }
 
 /**

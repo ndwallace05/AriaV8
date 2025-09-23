@@ -1,5 +1,6 @@
 import os
 import json
+import hashlib
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from livekit.api import AccessToken, VideoGrants
@@ -34,7 +35,11 @@ def get_livekit_token():
         return jsonify({"error": "user_id and access_token are required"}), 400
 
     # The agent will connect as a participant with a unique identity
-    agent_identity = f"agent-{user_id}"
+    hashed_id = hashlib.sha256(user_id.encode('utf-8')).hexdigest()
+    agent_identity = f"agent-{hashed_id}"
+
+    # Create a unique room for the user
+    room_name = f"aria-room-{user_id}"
 
     # The metadata will be passed to the agent's entrypoint
     metadata = {
@@ -44,7 +49,7 @@ def get_livekit_token():
 
     # Create a LiveKit access token
     lk_token = AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
-    grant = VideoGrants(room_join=True, room="aria-room") # A single room for all sessions for now
+    grant = VideoGrants(room_join=True, room=room_name)
 
     lk_token.with_identity(agent_identity)
     lk_token.with_metadata(json.dumps(metadata))

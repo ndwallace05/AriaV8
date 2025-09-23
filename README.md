@@ -53,9 +53,6 @@ Follow the steps in the previous documentation to set up a GCP project, enable t
     *   Create a `.env` file in the root of the project.
     *   Add the following variables:
         ```
-        # From Google Cloud Console
-        GOOGLE_CLIENT_ID=your_google_client_id_here
-
         # From LiveKit Project Settings
         LIVEKIT_API_KEY=your_livekit_api_key
         LIVEKIT_API_SECRET=your_livekit_api_secret
@@ -67,6 +64,7 @@ Follow the steps in the previous documentation to set up a GCP project, enable t
     *   Create a `.env.local` file for the frontend. This is used by Vite.
         ```
         VITE_LIVEKIT_URL=wss://your-livekit-url.livekit.cloud
+        VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
         ```
 
 ## 🚀 Running the Application
